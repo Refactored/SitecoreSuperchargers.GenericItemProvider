@@ -71,11 +71,13 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\BooleanToCheckboxConversionAttribute.cs" />
     <Compile Include="Attributes\ConvertibleFieldMapping.cs" />
     <Compile Include="Attributes\IntegerToCheckboxConversionAttribute.cs" />
     <Compile Include="Attributes\DateTimeToDateConversionAttribute.cs" />
     <Compile Include="Attributes\FieldMapping.cs" />
     <Compile Include="Attributes\IConvertibleAttribute.cs" />
+    <Compile Include="Attributes\ReadOnlyFieldMapping.cs" />
     <Compile Include="Attributes\UrlToExternalLinkConversionAttribute.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Data\ContentService.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="Helpers\CacheHelper.cs" />
     <Compile Include="Helpers\EntityHelper.cs" />
     <Compile Include="Helpers\FieldMappingHelper.cs" />
+    <Compile Include="Helpers\ItemHelper.cs" />
     <Compile Include="Helpers\Parser.cs" />
     <Compile Include="Helpers\QueryUtil.cs" />
     <Compile Include="IDs.cs" />
