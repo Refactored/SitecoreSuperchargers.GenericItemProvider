@@ -79,12 +79,16 @@
     <Compile Include="Config.cs" />
     <Compile Include="Data\ContentService.cs" />
     <Compile Include="Data\IEntity.cs" />
+    <Compile Include="Data\ISavable.cs" />
     <Compile Include="Data\Processors\GenericItemProviderArgs.cs" />
     <Compile Include="Data\Processors\GenericProcessor.cs" />
     <Compile Include="Data\Processors\IItemProcessor.cs" />
     <Compile Include="Data\Providers\GenericItemProvider.cs" />
     <Compile Include="Data\Providers\IntegrationDisabler.cs" />
+    <Compile Include="Events\ItemEventHandler.cs" />
     <Compile Include="Helpers\CacheHelper.cs" />
+    <Compile Include="Helpers\EntityHelper.cs" />
+    <Compile Include="Helpers\FieldMappingHelper.cs" />
     <Compile Include="Helpers\Parser.cs" />
     <Compile Include="Helpers\QueryUtil.cs" />
     <Compile Include="IDs.cs" />

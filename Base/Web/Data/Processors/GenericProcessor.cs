@@ -6,14 +6,12 @@ using Sitecore.Data.Managers;
 using Sitecore.Globalization;
 using Sitecore.SecurityModel;
 using Sitecore.StringExtensions;
-using SitecoreSuperchargers.GenericItemProvider.Attributes;
 using SitecoreSuperchargers.GenericItemProvider.Data.Providers;
 using SitecoreSuperchargers.GenericItemProvider.Helpers;
 using SitecoreSuperchargers.GenericItemProvider.Superchargers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace SitecoreSuperchargers.GenericItemProvider.Data.Processors
 {
@@ -30,61 +28,57 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data.Processors
             var rootItem = args.RootItem;
 
             if (!rootItem.TemplateID.ToString().Equals(ContainerTemplateId)) return;
+            if (Switcher<bool, IntegrationDisabler>.CurrentValue || !CacheHelper.IsExpired(rootItem)) return;
 
-            if (!Switcher<bool, IntegrationDisabler>.CurrentValue && CacheHelper.IsExpired(rootItem))
+            CacheHelper.SetAsCached(rootItem);
+
+            using (new IntegrationDisabler())
             {
-                CacheHelper.SetAsCached(rootItem);
+                var startTime = DateTime.Now;
 
-                using (new IntegrationDisabler())
+                var queryPath = rootItem.Paths.FullPath;
+                var entityTemplate = rootItem.Database.GetTemplate(EntityTemplateId);
+
+                using (new SecurityDisabler())
                 {
-                    var startTime = DateTime.Now;
-
-                    var queryPath = rootItem.Paths.FullPath;
-                    var entityTemplate = rootItem.Database.GetTemplate(EntityTemplateId);
-
-                    using (new SecurityDisabler())
+                    using (new BulkUpdateContext())
                     {
-                        using (new BulkUpdateContext())
+                        foreach (var data in Data.Take(MaxFetch))
                         {
-                            foreach (var data in Data.Take(MaxFetch))
+                            if (!(data is IEntity)) continue;
+
+                            var entity = data as IEntity;
+                            var entityName = ItemUtil.ProposeValidItemName(entity.GetItemName());
+
+                            if (entityName.IsNullOrEmpty()) continue;
+
+                            var language = ResolveLanguage(entity);
+                            var path = string.Format("{0}{1}", StringUtil.EnsurePostfix('/', queryPath), entityName);
+                            var startQuery = DateTime.Now;
+                            var existingItem = rootItem.Database.GetItem(path);
+
+                            if (existingItem != null && existingItem.HasVersions())
                             {
-                                if (!(data is IEntity)) continue;
-
-                                var entity = data as IEntity;
-
-                                var entityName = ItemUtil.ProposeValidItemName(entity.GetItemName());
-
-                                if (entityName.IsNullOrEmpty()) continue;
-
-                                var language = ResolveLanguage(entity);
-
-                                var path = string.Format("{0}{1}", StringUtil.EnsurePostfix('/', queryPath), entityName);
-                                var startQuery = DateTime.Now;
-                                var existingItem = rootItem.Database.GetItem(path);
-
-                                if (existingItem != null && existingItem.HasVersions())
-                                {
-                                    ProcessExisting(existingItem, entity, language, true);
-                                    continue;
-                                }
-
-                                Logger.Info("item not found creating : " + entityName);
-
-                                ProcessNew(rootItem, entity, entityTemplate, language);
-
-                                var endQuery = DateTime.Now;
-                                var timeTaken = endQuery - startQuery;
-
-                                Logger.Info(string.Format("query time : {0} ms for {1}",
-                                                          timeTaken.TotalMilliseconds.ToString(), path));
+                                ProcessExisting(existingItem, entity, language, true);
+                                continue;
                             }
+
+                            Logger.Info("item not found creating : " + entityName);
+
+                            ProcessNew(rootItem, entity, entityTemplate, language);
+
+                            var endQuery = DateTime.Now;
+                            var timeTaken = endQuery - startQuery;
+
+                            Logger.Info(string.Format("query time : {0} ms for {1}",
+                                                      timeTaken.TotalMilliseconds.ToString(), path));
                         }
                     }
-                    var endTime = DateTime.Now;
-
-                    Logger.Info("Contract Sync: Start Time {0}, End Time {1}".FormatWith(startTime.ToString(),
-                                                                                         endTime.ToString()));
                 }
+                var endTime = DateTime.Now;
+
+                Logger.Info("Contract Sync: Start Time {0}, End Time {1}".FormatWith(startTime.ToString(),
+                                                                                     endTime.ToString()));
             }
         }
 
@@ -93,14 +87,11 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data.Processors
             var entityLang = entity.GetLanguageName().TrimStart().TrimEnd();
 
             if (entityLang.IsNullOrEmpty()) return LanguageManager.DefaultLanguage;
-
             if (!LanguageMap.ContainsKey(entityLang)) return LanguageManager.DefaultLanguage;
 
             var scLanguage = LanguageMap[entityLang];
 
-            if (scLanguage.IsNullOrEmpty()) return LanguageManager.DefaultLanguage;
-
-            return scLanguage.ParseLanguage();
+            return scLanguage.IsNullOrEmpty() ? LanguageManager.DefaultLanguage : scLanguage.ParseLanguage();
         }
 
         public void ProcessExisting(Item item, IEntity entity, Language language, bool append = false)
@@ -108,19 +99,15 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data.Processors
             item = item.EnsureItemLanguage(language);
 
             var properties = entity.GetType().GetProperties();
-
-            bool changeDetected;
-            bool versionAdded = false;
+            var versionAdded = false;
 
             foreach (var property in properties)
             {
-                var fieldID = GetFieldID(property);
+                var fieldId = FieldMappingHelper.GetFieldId(property);
+                if (fieldId.IsNullOrEmpty()) continue;
 
-                if (fieldID.IsNullOrEmpty()) continue;
-
-                var propertyValue = GetPropertyValue(property, entity);
-
-                changeDetected = !item[fieldID].Equals(propertyValue);
+                var propertyValue = FieldMappingHelper.GetPropertyValue(property, entity);
+                var changeDetected = !item[fieldId].Equals(propertyValue);
 
                 if (append && changeDetected && !versionAdded)
                 {
@@ -130,46 +117,9 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data.Processors
 
                 using (new EditContext(item))
                 {
-                    item.Fields[fieldID].SetValue(propertyValue, false);
+                    item.Fields[fieldId].SetValue(propertyValue, false);
                 }
             }
-        }
-
-        private string GetPropertyValue(PropertyInfo property, IEntity entity)
-        {
-            var mapping = GetFieldMapping(property);
-
-            var rawValue = property.GetValue(entity, null);
-            if (null != rawValue)
-            {
-                if (mapping is IConvertibleAttribute)
-                {
-                    var convertibleMapping = mapping as IConvertibleAttribute;
-                    return convertibleMapping.Convert(rawValue.ToString());
-                }
-
-                return rawValue.ToString();
-            }
-            return String.Empty;
-        }
-
-        private FieldMapping GetFieldMapping(PropertyInfo property)
-        {
-            var attributes = property.GetCustomAttributes(typeof (FieldMapping), true);
-
-            return attributes.Length <= 0 ? null : attributes[0] as FieldMapping;
-        }
-
-        private string GetFieldID(PropertyInfo property)
-        {
-            var mapping = GetFieldMapping(property);
-
-            if (mapping == null)
-            {
-                return String.Empty;
-            }
-
-            return mapping.FieldId.IsNullOrEmpty() ? String.Empty : mapping.FieldId;
         }
 
         public void ProcessNew(Item rootItem, IEntity entity, TemplateItem template, Language language)
