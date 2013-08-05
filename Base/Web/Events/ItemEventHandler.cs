@@ -24,9 +24,16 @@ namespace SitecoreSuperchargers.GenericItemProvider.Events
 
             // Now call the ISavable.Save method which will trigger custom save logic.
             var saved = savable.Save(item);
+            if (saved) return;
 
             // If there was an error saving to external system, abort save process.
-            ((SitecoreEventArgs) args).Result.Cancel = !saved;
+            ((SitecoreEventArgs) args).Result.Cancel = true;
+
+            // Force UI to refresh to previous item values.
+            var load =
+                String.Concat(new object[]
+                    {"item:load(id=", item.ID, ",language=", item.Language, ",version=", item.Version, ")"});
+            Sitecore.Context.ClientPage.SendMessage(this, load);
         }
 
         private static bool HasChanged(Item current)
