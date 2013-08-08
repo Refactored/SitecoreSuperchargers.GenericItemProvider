@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\ConvertibleFieldMapping.cs" />
+    <Compile Include="Attributes\IntegerToCheckboxConversionAttribute.cs" />
     <Compile Include="Attributes\DateTimeToDateConversionAttribute.cs" />
     <Compile Include="Attributes\FieldMapping.cs" />
     <Compile Include="Attributes\IConvertibleAttribute.cs" />
@@ -93,6 +94,7 @@
     <Compile Include="Helpers\QueryUtil.cs" />
     <Compile Include="IDs.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="Pipelines\Save\GenericSaveProcessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Superchargers\DatabaseExtension.cs" />
     <Compile Include="Superchargers\FieldExtension.cs" />

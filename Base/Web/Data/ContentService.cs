@@ -6,24 +6,42 @@ using SitecoreSuperchargers.GenericItemProvider.Superchargers;
 
 namespace SitecoreSuperchargers.GenericItemProvider.Data
 {
-   public static class ContentService
-   {
-      public static bool IsRepository(this Item item)
-      {
-         if (!Switcher<bool, IntegrationDisabler>.CurrentValue)
-         {
-            using (new IntegrationDisabler())
+    public static class ContentService
+    {
+        public static bool IsEntity(this Item item)
+        {
+            if (!Switcher<bool, IntegrationDisabler>.CurrentValue)
             {
-               return IsRepositoryItem(item);
+                using (new IntegrationDisabler())
+                {
+                    return IsEntityItem(item);
+                }
             }
-         }
 
-         return IsRepositoryItem(item);
-      }
+            return IsEntityItem(item);
+        }
 
-      private static bool IsRepositoryItem(Item item)
-      {
-         return item.IsDerived(ID.Parse(IDs.TemplateIDs.IRepository));
-      }
-   }
+        private static bool IsEntityItem(Item item)
+        {
+            return item.IsDerived(ID.Parse(IDs.TemplateIDs.IEntity));
+        }
+
+        public static bool IsRepository(this Item item)
+        {
+            if (!Switcher<bool, IntegrationDisabler>.CurrentValue)
+            {
+                using (new IntegrationDisabler())
+                {
+                    return IsRepositoryItem(item);
+                }
+            }
+
+            return IsRepositoryItem(item);
+        }
+
+        private static bool IsRepositoryItem(Item item)
+        {
+            return item.IsDerived(ID.Parse(IDs.TemplateIDs.IRepository));
+        }
+    }
 }
