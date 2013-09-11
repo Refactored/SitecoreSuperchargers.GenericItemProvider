@@ -1,4 +1,5 @@
 ﻿using Sitecore;
+using Sitecore.Data.Events;
 using Sitecore.Data.Items;
 using Sitecore.Events;
 using SitecoreSuperchargers.GenericItemProvider.Data;
@@ -9,6 +10,27 @@ namespace SitecoreSuperchargers.GenericItemProvider.Events
 {
     public class ItemEventHandler
     {
+        public void OnItemCreating(object sender, EventArgs args)
+        {
+            var itemCreatingEventArgs = Event.ExtractParameter<ItemCreatingEventArgs>(args, 0);
+            if (null == itemCreatingEventArgs) return;
+
+            var item = Sitecore.Context.Database.GetItem(itemCreatingEventArgs.ItemId);
+            if (null == item) return;
+            if (IsIgnorable(item)) return;
+
+            // Make sure this is an ICreatable entity before continuing.
+            var creatable = Helpers.EntityHelper.CreateCreatableInstance(item);
+            if (creatable == null) return;
+
+            // Now call the ICreatable.Create method which will trigger custom create logic.
+            var created = creatable.Create(item);
+            if (created) return;
+
+            // External data store save (create) failed, abort save process.
+            ((ItemCreatingEventArgs) args).Cancel = true;
+        }
+
         public void OnItemSaving(object sender, EventArgs args)
         {
             var item = Event.ExtractParameter(args, 0) as Item;

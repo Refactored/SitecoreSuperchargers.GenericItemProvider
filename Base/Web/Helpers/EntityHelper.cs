@@ -34,6 +34,17 @@ namespace SitecoreSuperchargers.GenericItemProvider.Helpers
         }
 
         /// <summary>
+        /// Takes a Sitecore Item and determines which ICreatable class to use. Through
+        /// reflection an ICreatable instance is created and returned.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public static ICreatable CreateCreatableInstance(Item item)
+        {
+            return CreateEntityInstance(item) as ICreatable;
+        }
+
+        /// <summary>
         /// Takes a Sitecore Item and determines which ISavable class to use. Through
         /// reflection an ISavable instance is created and returned.
         /// </summary>
