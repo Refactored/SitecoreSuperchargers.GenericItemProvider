@@ -6,6 +6,7 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data
 {
     public interface ISavable : IEntity
     {
+        bool Create(IEntity savableEntity);
         bool Save(Item savableItem, Item originalItem, IEnumerable<Field> fieldChanges);
     }
 }

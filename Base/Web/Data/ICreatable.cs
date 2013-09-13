@@ -4,6 +4,6 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data
 {
     public interface ICreatable : IEntity
     {
-        bool Create(Item savableItem);
+        bool Create(Item item);
     }
 }

@@ -12,6 +12,7 @@ namespace SitecoreSuperchargers.GenericItemProvider.Data
     {
         public abstract string GetItemName();
         public abstract string GetLanguageName();
+        public abstract bool Create(IEntity savableEntity);
         public abstract bool Save(Item savableItem, Item originalItem, IEnumerable<Field> fieldChanges);
 
         public void ResetReadOnlyProperties(Item originalItem, IEnumerable<Field> fieldChanges)

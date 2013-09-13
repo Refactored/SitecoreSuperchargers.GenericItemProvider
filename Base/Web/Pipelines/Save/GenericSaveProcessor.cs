@@ -4,6 +4,7 @@ using System.Linq;
 using Sitecore;
 using Sitecore.Data.Items;
 using Sitecore.Diagnostics;
+using Sitecore.Pipelines;
 using Sitecore.Pipelines.Save;
 using SitecoreSuperchargers.GenericItemProvider.Data;
 
@@ -11,48 +12,45 @@ namespace SitecoreSuperchargers.GenericItemProvider.Pipelines.Save
 {
     public class GenericSaveProcessor
     {
-        //public int Limit { get; set; }
+        public int Limit { get; set; }
 
-        //public void Process(SaveArgs args)
-        //{
-        //    Assert.ArgumentNotNull(args, "args");
+        public void Process(SaveArgs args)
+        {
+            Assert.ArgumentNotNull(args, "args");
 
-        //    if (!args.HasSheerUI) return;
+            if (args.IsPostBack)
+            {
+                if (args.Result == "no" || args.Result == "undefined") args.AbortPipeline();
+                return;
+            }
 
-        //    if (args.IsPostBack)
-        //    {
-        //        if (args.Result == "no" || args.Result == "undefined")
-        //        {
-        //            args.AbortPipeline();
-        //        }
+            Assert.IsNotNull(Context.ContentDatabase, "Sitecore.Context.ContentDatbabase");
 
-        //        return;
-        //    }
+            foreach (var uiItem in args.Items)
+            {
+                // Retrieve from the database the same item containing the old values
+                var item = Context.ContentDatabase.GetItem(uiItem.ID, uiItem.Language, uiItem.Version);
+                if (null == item) continue;
+                if (Helpers.ItemHelper.IsIgnorable(item)) continue;
 
-        //    Assert.IsNotNull(Context.ContentDatabase, "Sitecore.Context.ContentDatbabase");
+                // Make sure this is an ISavable entity before continuing.
+                var savable = Helpers.EntityHelper.CreateSavableInstance(item);
+                if (savable == null) return;
 
-        //    // For each of the items the user attempts to save
-        //    foreach (var uiItem in args.Items)
-        //    {
-        //        // Retrieve from the database the same item containing the old values
-        //        var dbItem = Context.ContentDatabase.GetItem(uiItem.ID, uiItem.Language, uiItem.Version);
-        //        Assert.IsNotNull(dbItem, "dbItem");
+                // Get a copy of the original item to pass to the Save method.
+                var originalItem = item.Database.GetItem(item.ID, item.Language, item.Version);
 
-        //        if (!dbItem.IsEntity()) continue;
+                // --- Get field changes which is passed to the Save method.
+                var changes = Helpers.ItemHelper.GetFieldChanges(item, originalItem);
 
-        //        var changedFields =
-        //            (from uiField in uiItem.Fields
-        //             where uiField.Value != dbItem[uiField.ID]
-        //             select dbItem.Fields[uiField.ID].Name).ToList();
+                // Now call the ISavable.Save method which will trigger custom save logic.
+                var saved = savable.Save(item, originalItem, changes);
+                if (saved) continue;
 
-        //        if (changedFields.Any())
-        //        {
-        //            var savable = Helpers.EntityHelper.CreateSavableInstance(dbItem);
-        //        }
-        //    }
-
-        //    args.SaveAnimation = false;
-        //    args.AbortPipeline();
-        //}
+                args.AddMessage("External save failed.", PipelineMessageType.Error);
+                args.SaveAnimation = false;
+                args.AbortPipeline();
+            }
+        }
     }
 }

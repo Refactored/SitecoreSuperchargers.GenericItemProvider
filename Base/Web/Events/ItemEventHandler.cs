@@ -10,75 +10,54 @@ namespace SitecoreSuperchargers.GenericItemProvider.Events
 {
     public class ItemEventHandler
     {
-        public void OnItemCreating(object sender, EventArgs args)
-        {
-            var itemCreatingEventArgs = Event.ExtractParameter<ItemCreatingEventArgs>(args, 0);
-            if (null == itemCreatingEventArgs) return;
+        //public void OnItemCreated(object sender, EventArgs args)
+        //{
+        //    var e = Event.ExtractParameter<ItemCreatedEventArgs>(args, 0);
+        //    if (null == e) return;
 
-            var item = Sitecore.Context.Database.GetItem(itemCreatingEventArgs.ItemId);
-            if (null == item) return;
-            if (IsIgnorable(item)) return;
+        //    var item = e.Item;
+        //    if (null == item) return;
+        //    if (IsIgnorable(item)) return;
 
-            // Make sure this is an ICreatable entity before continuing.
-            var creatable = Helpers.EntityHelper.CreateCreatableInstance(item);
-            if (creatable == null) return;
+        //    // Make sure this is an ICreatable entity before continuing.
+        //    var creatable = Helpers.EntityHelper.CreateCreatableInstance(item);
+        //    if (creatable == null) return;
 
-            // Now call the ICreatable.Create method which will trigger custom create logic.
-            var created = creatable.Create(item);
-            if (created) return;
+        //    // Now call the ICreatable.Create method which will trigger custom save logic.
+        //    var saved = creatable.Create(item);
+        //    if (saved) return;
 
-            // External data store save (create) failed, abort save process.
-            ((ItemCreatingEventArgs) args).Cancel = true;
-        }
+        //    // TODO: Handle a failed external save (by cleaning up the created item).
+        //}
 
-        public void OnItemSaving(object sender, EventArgs args)
-        {
-            var item = Event.ExtractParameter(args, 0) as Item;
-            if (null == item) return;
-            if (IsIgnorable(item)) return;
+        //public void OnItemSaving(object sender, EventArgs args)
+        //{
+        //    var item = Event.ExtractParameter<Item>(args, 0);
+        //    if (null == item) return;
+        //    if (Helpers.ItemHelper.IsIgnorable(item)) return;
 
-            // Make sure this is an ISavable entity before continuing.
-            var savable = Helpers.EntityHelper.CreateSavableInstance(item);
-            if (savable == null) return;
+        //    // Make sure this is an ISavable entity before continuing.
+        //    var savable = Helpers.EntityHelper.CreateSavableInstance(item);
+        //    if (savable == null) return;
 
-            // Get a copy of the original item to pass to the Save method.
-            var originalItem = item.Database.GetItem(item.ID, item.Language, item.Version);
+        //    // Get a copy of the original item to pass to the Save method.
+        //    var originalItem = item.Database.GetItem(item.ID, item.Language, item.Version);
 
-            // --- Get field changes which is passed to the Save method.
-            var changes = Helpers.ItemHelper.GetFieldChanges(item, originalItem);
+        //    // --- Get field changes which is passed to the Save method.
+        //    var changes = Helpers.ItemHelper.GetFieldChanges(item, originalItem);
 
-            // Now call the ISavable.Save method which will trigger custom save logic.
-            var saved = savable.Save(item, originalItem, changes);
-            if (saved) return;
+        //    // Now call the ISavable.Save method which will trigger custom save logic.
+        //    var saved = savable.Save(item, originalItem, changes);
+        //    if (saved) return;
 
-            // External data store save failed, abort save process.
-            ((SitecoreEventArgs) args).Result.Cancel = true;
+        //    // External data store save failed, abort save process.
+        //    ((SitecoreEventArgs) args).Result.Cancel = true;
 
-            // Force UI to refresh to previous item values.
-            var load =
-                String.Concat(new object[]
-                    {"item:load(id=", item.ID, ",language=", item.Language, ",version=", item.Version, ")"});
-            Context.ClientPage.SendMessage(this, load);
-        }
-
-        private static bool IsIgnorable(Item item)
-        {
-            if (item == null) return true;
-
-            // Abort if this isn't a supported database.
-            if (!Config.SupportedDatabases.Any(d => d.Equals(item.Database.Name))) return true;
-
-            // Abort if this is a standard values item.
-            if (item.Name.Equals(Constants.StandardValuesItemName)) return true;
-
-            // Abort if this is the IEntity template.
-            if (item.TemplateID.ToGuid().ToString().Equals(IDs.TemplateIDs.IEntity)) return true;
-
-            // Abort if this isn't an IEntity derived item.
-            if (!item.IsEntity()) return true;
-
-            // Abort if the item hasn't changed.
-            return !Helpers.ItemHelper.HasChanged(item);
-        }
+        //    // Force UI to refresh to previous item values.
+        //    var load =
+        //        String.Concat(new object[]
+        //            {"item:load(id=", item.ID, ",language=", item.Language, ",version=", item.Version, ")"});
+        //    Context.ClientPage.SendMessage(this, load);
+        //}
     }
 }

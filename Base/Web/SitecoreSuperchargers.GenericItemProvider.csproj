@@ -82,7 +82,7 @@
     <Compile Include="Config.cs" />
     <Compile Include="Data\AbstractSavable.cs" />
     <Compile Include="Data\ContentService.cs" />
-    <Compile Include="Data\ICreatable .cs" />
+    <Compile Include="Data\ICreatable.cs" />
     <Compile Include="Data\IEntity.cs" />
     <Compile Include="Data\ISavable.cs" />
     <Compile Include="Data\Processors\GenericItemProviderArgs.cs" />
